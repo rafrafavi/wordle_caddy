@@ -69,13 +69,17 @@ class WordleCaddy(cmd.Cmd):
             self.do_contains("".join(in_word))
         self.do_suggest("")
 
-    def do_find(self, arg, sub_search=False, show=True):
+    def do_find(self, arg, sub_search=False, show=True, save=True):
         """Finds arg in the word list using regex syntax."""
         regex = re.compile(arg)
         words = self.last_search if sub_search else self.words
-        self.last_search = [word for word in words if regex.match(word)]
+        last_search = [word for word in words if regex.match(word)]
         if show:
-            print(self.last_search, len(self.last_search))
+            print(last_search, len(last_search))
+        if save:
+            self.last_search = last_search
+        else:
+            return last_search  # TODO: so cludgy!
 
     def do_sub(self, arg):
         """Executes a find within the last results."""
@@ -101,24 +105,17 @@ class WordleCaddy(cmd.Cmd):
         """Displays word suggestions."""
         suggestion = self.recommended if auto_suggest else None
         if auto_suggest:
-            # TODO: Implement unbuggy prefernce for unique characters
-            # (This is buggy because it doesn't account for the current search results)
-            # self.do_find(no_repeat_chars_regex, True, False)
-            # if self.last_search and 10 < (choices := len(self.last_search)) < 100:
-            #     # suggestion = random.choice(
-            #     #     [word for word in self.last_search if set(word) == 5]
-            #     # )
-            #     suggestion = (
-            #         random.choice(self.last_search)
-            #         if self.last_search
-            #         else self.recommended
-            #     )
-            # else:
-            suggestion = (
-                random.choice(self.last_search)
-                if self.last_search
-                else self.recommended
+            last_search = self.do_find(
+                no_repeat_chars_regex, sub_search=True, show=False, save=False
             )
+            if last_search and len(last_search) > 10:
+                suggestion = random.choice(last_search)
+            else:
+                suggestion = (
+                    random.choice(self.last_search)
+                    if self.last_search
+                    else self.recommended
+                )
 
         if suggestion and self.recommended != suggestion:
             self.recommended = suggestion
